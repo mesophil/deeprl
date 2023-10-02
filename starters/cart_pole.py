@@ -14,13 +14,16 @@ def main():
     train_env = gym.make("CartPole-v1", render_mode="rgb_array")
 
     model = PPO(MlpPolicy, train_env, verbose=0)
+
+    mean_reward, std_reward = eval(model)
+
+    print(f"beginning mean reward: {mean_reward:.3f} +/- {std_reward:.3f}")
+
     model.learn(total_timesteps=50_000)
 
     mean_reward, std_reward = eval(model)
 
-    print(f"mean reward: {mean_reward:.3f} +/- {std_reward:.3f}")
-
-    
+    print(f"end mean reward: {mean_reward:.3f} +/- {std_reward:.3f}")
 
 
 if __name__ == "__main__":
