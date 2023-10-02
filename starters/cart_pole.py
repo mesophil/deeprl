@@ -6,7 +6,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 
 def eval(model):
     eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
-    mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=1000)
+    mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=100)
 
     return mean_reward, std_reward
 
@@ -14,7 +14,7 @@ def main():
     train_env = gym.make("CartPole-v1", render_mode="rgb_array")
 
     model = PPO(MlpPolicy, train_env, verbose=0)
-    model.learn(total_timesteps=100_000)
+    model.learn(total_timesteps=50_000)
 
     mean_reward, std_reward = eval(model)
 
