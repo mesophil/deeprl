@@ -10,6 +10,8 @@ from torchvision.models import resnet18, ResNet18_Weights
 
 from tqdm import tqdm
 
+from make_image import makeImage
+
 transform = torchvision.transforms.Compose([transforms.Resize(255),
                                             transforms.CenterCrop(224),
                                             transforms.ToTensor()])
@@ -21,10 +23,11 @@ trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = 8, shuffle=True
 
 testLoader = torch.utils.data.DataLoader(testSet, batch_size = 8, shuffle=True)
 
+loss = torch.nn.CrossEntropyLoss()
+
 def train(model, optimizer, lossFunction, numEpochs = 50):
     
     model.train()
-
     for epoch in range(numEpochs):
         for images, labels in tqdm(trainLoader):
             images = images.cuda()
@@ -40,7 +43,6 @@ def train(model, optimizer, lossFunction, numEpochs = 50):
             predLoss.backward()
 
             optimizer.step()
-
 
 def test(model):
     model.eval()
@@ -60,16 +62,16 @@ def test(model):
 
     return correct / total
 
-def generateImage(phrase):
-    pass
+def getInitialAcc():
+    model = resnet18(weights=ResNet18_Weights.DEFAULT)
+    testAcc = test(model)
+    return testAcc
 
+def doImage(phrase, dire):
 
-def doImage(phrase):
-
-    generateImage(phrase)
+    makeImage(phrase, dire)
 
     model = resnet18(weights=ResNet18_Weights.DEFAULT)
-    loss = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(lr=1e-4, momentum=0.9)
 
     train(model, optimizer, loss)
@@ -77,3 +79,6 @@ def doImage(phrase):
     testAcc = test(model)
 
     return testAcc
+
+if __name__ == "__main__":
+    print(getInitialAcc())

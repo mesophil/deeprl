@@ -2,33 +2,31 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-import logging
-from processor import doImage
+import logging, os
+from processor import doImage, getInitialAcc
 
 class trainEnv(gym.Env):
 
-    def __init__(self, maxLength = 10, initialAccuracy = 0) -> None:
+    def __init__(self, maxLength = 10) -> None:
         super().__init__()
 
         self.maxLength = maxLength
         self.currLength = 0
-        self.action_space = spaces.Dict({"starter": 'H&E stain pathology digital image',
-                                         "one" : ['lung', 'colon'],
-                                         "two": ['lung', 'colon'],
-                                         "three": ['benign', 'adipose'],
-                                         "end": ['highly detailed, highly accurate']})
+        self.action_space = spaces.Dict({"first" : spaces.Discrete(4),
+                                         "second" : spaces.Discrete(4),
+                                         "third" : spaces.Discrete(4)})
 
         '''
         H&E Stained Image with cancer
         {'lung', 'colon', 'breast' ...}
         {'lung', 'colon', 'breast' ...}
         {'normal', 'adeno', ...}
+        ( or just have every word in every space )
         highly accurate highly detailed
         
         '''
 
-        self.initialAcc = initialAccuracy
-        self.currentAcc = initialAccuracy
+        self.currentAcc = self.initialAcc = getInitialAcc()
 
         self.observation_space = spaces.Box(low = 0, high = 1, shape=(1,), dtype=np.float32)
 
@@ -38,20 +36,35 @@ class trainEnv(gym.Env):
         self.currLength = 0
         self.currentAcc = self.initialAcc
 
+        # clear the images folder
+        os.chdir('~/Documents/GitHub/deeprl/customs')
+
+        for f in os.listdir('../images'):
+            if not f.endswith('.png'): continue
+            os.remove(os.path.join('../images', f))
+
         return np.array([self.currentAcc]).astype(np.float32), {} #empty dict is for info
     
     def step(self, action):
         reward = 0
         terminated, truncated = False, False
         info = {}
-        
-        phrase = " ".join(action)
+
+        phrase = "H&E stain pathology digital image"
+        vocab = ['lung', 'colon', 'benign', 'adipose']
+
+        for key in reversed(action):
+            phrase = " ".join(phrase, vocab[action[key]])
+            
+        dire = vocab[action[key]]
+
+        phrase = " ".join(phrase, "highly detailed, highly accurate, colour correct")
 
         # send
         # phrase
         # to
         # stable diffusion
-        newAcc = doImage(phrase)
+        newAcc = doImage(phrase, dire)
 
         # add a reward equal to the accuracy improvement in percent
         # options: entropy, accuracy
