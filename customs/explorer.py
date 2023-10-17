@@ -5,10 +5,13 @@ from gymnasium import spaces
 import logging, os
 from processor import doImage, getInitialAcc
 
+from stable_baselines3.common.env_checker import check_env
+
+
 class trainEnv(gym.Env):
 
     def __init__(self, maxLength = 10) -> None:
-        super().__init__()
+        super(trainEnv).__init__()
 
         self.maxLength = maxLength
         self.currLength = 0
@@ -37,11 +40,13 @@ class trainEnv(gym.Env):
         self.currentAcc = self.initialAcc
 
         # clear the images folder
-        os.chdir('~/Documents/GitHub/deeprl/customs')
+        currentDir = os.path.dirname(os.path.realpath(__file__))
 
-        for f in os.listdir('../images'):
+        imgPath = os.path.join(currentDir, "../images")
+
+        for f in os.listdir(imgPath):
             if not f.endswith('.png'): continue
-            os.remove(os.path.join('../images', f))
+            os.remove(os.path.join(imgPath, f))
 
         return np.array([self.currentAcc]).astype(np.float32), {} #empty dict is for info
     
@@ -87,6 +92,9 @@ class trainEnv(gym.Env):
 
 def main():
     logging.info('start')
+
+    env = trainEnv()
+    check_env(env)
 
 
 if __name__ == "__main__":

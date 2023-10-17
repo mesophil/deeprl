@@ -7,8 +7,10 @@ def makeImage(phrase : str, dire : str):
     device = "cuda"
     generator = torch.Generator(device="cuda").manual_seed(466)
 
-    out_dir = "../images"
-    model_path = "../models/pytorch_lora_weights.bin"
+
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    out_dir = os.path.join(current_dir, "../images")
+    model_path = os.path.join(current_dir, "../models/pytorch_lora_weights.bin")
 
     pipe = StableDiffusionPipeline.from_pretrained(
         "runwayml/stable-diffusion-v1-5", #change to 2-1 eventually

@@ -12,26 +12,28 @@ from tqdm import tqdm
 
 from make_image import makeImage
 
+currentDir = os.path.dirname(os.path.realpath(__file__))
+
 transform = torchvision.transforms.Compose([transforms.Resize(255),
                                             transforms.CenterCrop(224),
                                             transforms.ToTensor()])
 
-trainSet = torchvision.datasets.ImageFolder('../images', transform = transform)
-testSet = torchvision.datasets.ImageFolder('../test_images', transform = transform)
+trainPath = os.path.join(currentDir, "../images")
+testPath = os.path.join(currentDir, "../test_images")
+
+trainSet = torchvision.datasets.ImageFolder(trainPath, transform = transform)
+testSet = torchvision.datasets.ImageFolder(testPath, transform = transform)
 
 trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = 8, shuffle=True)
-
 testLoader = torch.utils.data.DataLoader(testSet, batch_size = 8, shuffle=True)
-
-loss = torch.nn.CrossEntropyLoss()
 
 def train(model, optimizer, lossFunction, numEpochs = 50):
     
     model.train()
     for epoch in range(numEpochs):
         for images, labels in tqdm(trainLoader):
-            images = images.cuda()
-            labels = labels.cuda()
+            # images = images.cuda()
+            # labels = labels.cuda()
 
             optimizer.zero_grad()
 
@@ -51,8 +53,8 @@ def test(model):
 
     with torch.no_grad():
         for inputs, labels in tqdm(testLoader):
-            inputs = inputs.cuda()
-            labels = labels.cuda()
+            # inputs = inputs.cuda()
+            # labels = labels.cuda()
 
             scores, _ = model(inputs)
             _, preds = torch.max(scores.data, 1)
@@ -73,6 +75,7 @@ def doImage(phrase, dire):
 
     model = resnet18(weights=ResNet18_Weights.DEFAULT)
     optimizer = torch.optim.SGD(lr=1e-4, momentum=0.9)
+    loss = torch.nn.CrossEntropyLoss()
 
     train(model, optimizer, loss)
 
