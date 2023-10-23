@@ -32,8 +32,8 @@ def train(model, optimizer, lossFunction, numEpochs = 50):
     model.train()
     for epoch in range(numEpochs):
         for images, labels in tqdm(trainLoader):
-            # images = images.cuda()
-            # labels = labels.cuda()
+            images = images.cuda()
+            labels = labels.cuda()
 
             optimizer.zero_grad()
 
@@ -53,8 +53,8 @@ def test(model):
 
     with torch.no_grad():
         for inputs, labels in tqdm(testLoader):
-            # inputs = inputs.cuda()
-            # labels = labels.cuda()
+            inputs = inputs.cuda()
+            labels = labels.cuda()
 
             scores = model(inputs)
             _, preds = torch.max(scores.data, 1)
