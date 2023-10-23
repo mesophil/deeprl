@@ -56,7 +56,7 @@ def test(model):
             # inputs = inputs.cuda()
             # labels = labels.cuda()
 
-            scores, _ = model(inputs)
+            scores = model(inputs)
             _, preds = torch.max(scores.data, 1)
 
             total += labels.size(0)

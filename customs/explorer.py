@@ -21,9 +21,9 @@ class trainEnv(gym.Env):
 
         '''
         H&E Stained Image with cancer
-        {'lung', 'colon', 'breast' ...}
-        {'lung', 'colon', 'breast' ...}
         {'normal', 'adeno', ...}
+        {'lung', 'colon', 'breast' ...}
+        {'lung', 'colon', 'breast' ...}
         ( or just have every word in every space )
         highly accurate highly detailed
         
@@ -59,11 +59,11 @@ class trainEnv(gym.Env):
         vocab = ['lung', 'colon', 'benign', 'adipose']
 
         for key in reversed(action):
-            phrase = " ".join(phrase, vocab[action[key]])
+            phrase = " ".join([phrase, vocab[action[key]]])
             
         dire = vocab[action[key]]
 
-        phrase = " ".join(phrase, "highly detailed, highly accurate, colour correct")
+        phrase = " ".join([phrase, "highly detailed, highly accurate, colour correct"])
 
         # send
         # phrase
