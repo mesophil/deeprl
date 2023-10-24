@@ -1,6 +1,7 @@
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
+import glob
 
 import logging, os
 from processor import doImage, getInitialAcc
@@ -44,9 +45,15 @@ class trainEnv(gym.Env):
 
         imgPath = os.path.join(currentDir, "../images")
 
-        for f in os.listdir(imgPath):
-            if not f.endswith('.png'): continue
-            os.remove(os.path.join(imgPath, f))
+        # for f in os.listdir(imgPath):
+        #     if not f.endswith('.png'): continue
+        #     os.remove(os.path.join(imgPath, f))
+
+        pathsList = glob.glob(imgPath + '/**/*', recursive=True)
+
+        for p in pathsList:
+            if os.path.isfile(p) and p.endswith('.png'):
+                os.remove(p)
 
         return np.array([self.currentAcc]).astype(np.float32), {} #empty dict is for info
     
