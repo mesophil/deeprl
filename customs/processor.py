@@ -18,6 +18,8 @@ transform = torchvision.transforms.Compose([transforms.Resize(255),
                                             transforms.CenterCrop(224),
                                             transforms.ToTensor()])
 
+device = torch.device("cuda")
+
 trainPath = os.path.join(currentDir, "../images")
 testPath = os.path.join(currentDir, "../test_images")
 
@@ -66,6 +68,7 @@ def test(model):
 
 def getInitialAcc():
     model = resnet18(weights=ResNet18_Weights.DEFAULT)
+    model.to(device)
     testAcc = test(model)
     return testAcc
 
@@ -74,6 +77,7 @@ def doImage(phrase, dire):
     makeImage(phrase, dire)
 
     model = resnet18(weights=ResNet18_Weights.DEFAULT)
+    model.to(device)
     optimizer = torch.optim.SGD(lr=1e-4, momentum=0.9)
     loss = torch.nn.CrossEntropyLoss()
 

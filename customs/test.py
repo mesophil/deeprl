@@ -16,5 +16,9 @@ def main():
             os.remove(p)
             print(f"Removed: {p}")
 
+    for p in pathsList:
+        if os.path.isdir(p):
+            os.rmdir(p)
+
 if __name__ == "__main__":
     main()

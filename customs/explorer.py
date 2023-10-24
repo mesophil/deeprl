@@ -8,6 +8,9 @@ from processor import doImage, getInitialAcc
 
 from stable_baselines3.common.env_checker import check_env
 
+from stable_baselines3 import PPO, A2C, DQN
+from stable_baselines3.common.env_util import make_vec_env
+
 
 class trainEnv(gym.Env):
 
@@ -16,9 +19,10 @@ class trainEnv(gym.Env):
 
         self.maxLength = maxLength
         self.currLength = 0
-        self.action_space = spaces.Dict({"first" : spaces.Discrete(4),
-                                         "second" : spaces.Discrete(4),
-                                         "third" : spaces.Discrete(4)})
+        self.action_space = spaces.Dict({"first" : spaces.Discrete(2),
+                                         "second" : spaces.Discrete(2),
+                                         "third" : spaces.Discrete(2),
+                                         "fourth" : spaces.Discrete(2)})
 
         '''
         H&E Stained Image with cancer
@@ -54,6 +58,11 @@ class trainEnv(gym.Env):
         for p in pathsList:
             if os.path.isfile(p) and p.endswith('.png'):
                 os.remove(p)
+                print(f"Removed: {p}")
+
+        for p in pathsList:
+            if os.path.isdir(p):
+                os.rmdir(p)
 
         return np.array([self.currentAcc]).astype(np.float32), {} #empty dict is for info
     
@@ -63,10 +72,14 @@ class trainEnv(gym.Env):
         info = {}
 
         phrase = "H&E stain pathology digital image"
-        vocab = ['lung', 'colon', 'benign', 'adipose']
+        classes = ['adipose', 'benign']
+        vocab = ['lung', 'colon']
 
-        for key in reversed(action):
-            phrase = " ".join([phrase, vocab[action[key]]])
+        for key in action:
+            if key == 'first':
+                phrase = " ".join([phrase, classes[action[key]]])
+            else:
+                phrase = " ".join([phrase, vocab[action[key]]])
             
         dire = vocab[action[key]]
 
@@ -102,6 +115,26 @@ def main():
 
     env = trainEnv()
     check_env(env)
+
+    vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(maxLength=10))
+
+    model = A2C("MlpPolicy", env, verbose=1).learn(50)
+
+    obs = vec_env.reset()
+    n_steps = 20
+    
+    for step in range(n_steps):
+        action, _ = model.predict(obs, deterministic=True)
+        print(f"Step {step + 1}")
+        print("Action: ", action)
+        obs, reward, done, info = vec_env.step(action)
+        print("obs=", obs, "reward=", reward, "done=", done)
+        vec_env.render()
+        if done:
+            # Note that the VecEnv resets automatically
+            # when a done signal is encountered
+            print("Goal reached!", "reward=", reward)
+            break
 
 
 if __name__ == "__main__":
