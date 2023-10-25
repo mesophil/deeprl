@@ -5,6 +5,7 @@ import glob
 
 import logging, os
 from processor import doImage, getInitialAcc
+from make_image import makeImage
 
 from stable_baselines3.common.env_checker import check_env
 
@@ -14,25 +15,23 @@ from stable_baselines3.common.env_util import make_vec_env
 
 class trainEnv(gym.Env):
 
-    def __init__(self, maxLength = 10) -> None:
+    def __init__(self, 
+                 classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'], 
+                 maxLength = 10) -> None:
+        
         super(trainEnv).__init__()
 
         self.maxLength = maxLength
         self.currLength = 0
-        self.action_space = spaces.Dict({"first" : spaces.Discrete(2),
+        self.action_space = spaces.Dict({"first" : spaces.Discrete(10),
                                          "second" : spaces.Discrete(2),
                                          "third" : spaces.Discrete(2),
                                          "fourth" : spaces.Discrete(2)})
 
-        '''
-        H&E Stained Image with cancer
-        {'normal', 'adeno', ...}
-        {'lung', 'colon', 'breast' ...}
-        {'lung', 'colon', 'breast' ...}
-        ( or just have every word in every space )
-        highly accurate highly detailed
-        
-        '''
+        self.classes = classes
+
+        for c in self.classes:
+            makeImage(c, c)
 
         self.currentAcc = self.initialAcc = getInitialAcc()
 
@@ -58,11 +57,13 @@ class trainEnv(gym.Env):
         for p in pathsList:
             if os.path.isfile(p) and p.endswith('.png'):
                 os.remove(p)
-                print(f"Removed: {p}")
 
         for p in pathsList:
             if os.path.isdir(p):
                 os.rmdir(p)
+
+        for c in self.classes:
+            makeImage(c, c)
 
         return np.array([self.currentAcc]).astype(np.float32), {} #empty dict is for info
     
@@ -71,19 +72,21 @@ class trainEnv(gym.Env):
         terminated, truncated = False, False
         info = {}
 
-        phrase = "H&E stain pathology digital image"
-        classes = ['adipose', 'benign']
-        vocab = ['lung', 'colon']
+        phrase = "High quality realistic photograph"
+        sizes = ["multiple", "large"]
+        vocab = ["on grass", "on sky", "on tree"]
 
         for key in action:
             if key == 'first':
-                phrase = " ".join([phrase, classes[action[key]]])
+                phrase = " ".join([phrase, self.classes[action[key]]])
+            elif key == 'second':
+                phrase = " ".join([phrase, sizes[action[key]]])
             else:
                 phrase = " ".join([phrase, vocab[action[key]]])
             
         dire = vocab[action[key]]
 
-        phrase = " ".join([phrase, "highly detailed, highly accurate, colour correct"])
+        phrase = " ".join([phrase, "highly detailed, highly accurate"])
 
         # send
         # phrase
@@ -115,6 +118,9 @@ def main():
 
     env = trainEnv()
     check_env(env)
+
+def testEnv():
+    env = trainEnv()
 
     vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(maxLength=10))
 
