@@ -23,10 +23,12 @@ class trainEnv(gym.Env):
 
         self.maxLength = maxLength
         self.currLength = 0
-        self.action_space = spaces.Dict({"first" : spaces.Discrete(10),
-                                         "second" : spaces.Discrete(2),
-                                         "third" : spaces.Discrete(2),
-                                         "fourth" : spaces.Discrete(2)})
+        # self.action_space = spaces.Dict({"first" : spaces.Discrete(10),
+        #                                  "second" : spaces.Discrete(2),
+        #                                  "third" : spaces.Discrete(2),
+        #                                  "fourth" : spaces.Discrete(2)})
+
+        self.action_space = spaces.MultiDiscrete([10, 2, 3, 3])
 
         self.classes = classes
 
@@ -76,15 +78,16 @@ class trainEnv(gym.Env):
         sizes = ["multiple", "large"]
         vocab = ["on grass", "on sky", "on tree"]
 
-        for key in action:
-            if key == 'first':
-                phrase = " ".join([phrase, self.classes[action[key]]])
-            elif key == 'second':
-                phrase = " ".join([phrase, sizes[action[key]]])
+        for i in range(len(action)):
+            # logging.info('i: ' + str(i))
+            if i == 0:
+                phrase = " ".join([phrase, self.classes[action[i]]])
+            elif i == 1:
+                phrase = " ".join([phrase, sizes[action[i]]])
             else:
-                phrase = " ".join([phrase, vocab[action[key]]])
-            
-        dire = vocab[action[key]]
+                phrase = " ".join([phrase, vocab[action[i]]])
+
+        dire = self.classes[action[0]]
 
         phrase = " ".join([phrase, "highly detailed, highly accurate"])
 
@@ -116,30 +119,33 @@ class trainEnv(gym.Env):
 def main():
     logging.info('start')
 
+    # for testing the environment
     env = trainEnv()
     check_env(env)
+
+    # testEnv()
 
 def testEnv():
     env = trainEnv()
 
     vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(maxLength=10))
 
-    model = A2C("MlpPolicy", env, verbose=1).learn(50)
+    model = DQN("MlpPolicy", env, verbose=1).learn(50)
 
     obs = vec_env.reset()
     n_steps = 20
     
     for step in range(n_steps):
         action, _ = model.predict(obs, deterministic=True)
-        print(f"Step {step + 1}")
-        print("Action: ", action)
+        logging.info(f"Step {step + 1}")
+        logging.info("Action: ", action)
         obs, reward, done, info = vec_env.step(action)
-        print("obs=", obs, "reward=", reward, "done=", done)
+        logging.info("obs=", obs, "reward=", reward, "done=", done)
         vec_env.render()
         if done:
             # Note that the VecEnv resets automatically
             # when a done signal is encountered
-            print("Goal reached!", "reward=", reward)
+            logging.info("Goal reached!", "reward=", reward)
             break
 
 

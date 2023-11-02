@@ -12,6 +12,8 @@ from tqdm import tqdm
 
 from make_image import makeImage
 
+from config import batch_size, learning_rate, momentum, numEpochs
+
 currentDir = os.path.dirname(os.path.realpath(__file__))
 
 transform = torchvision.transforms.Compose([transforms.Resize(255),
@@ -20,10 +22,15 @@ transform = torchvision.transforms.Compose([transforms.Resize(255),
 
 device = torch.device("cuda")
 
+logging.basicConfig(filename='my.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.DEBUG)
+
 trainPath = os.path.join(currentDir, "../images")
 testPath = os.path.join(currentDir, "../test_images")
 
-def train(model, optimizer, lossFunction, trainLoader, numEpochs = 20):
+testSet = torchvision.datasets.CIFAR10(root=testPath, train=False, download=True, transform=transform)
+testLoader = torch.utils.data.DataLoader(testSet, batch_size = batch_size, shuffle=False)
+
+def train(model, optimizer, lossFunction, trainLoader, numEpochs = numEpochs):
     
     model.train(True)
     for epoch in range(numEpochs):
@@ -34,11 +41,6 @@ def train(model, optimizer, lossFunction, trainLoader, numEpochs = 20):
             optimizer.zero_grad()
 
             scores = model(images)
-            # targetLoss = lossFunction(scores, labels)
-
-            # logging.info(f"{targetLoss}")
-
-            # predLoss = torch.sum(targetLoss) / targetLoss.size(0)
 
             predLoss = lossFunction(scores, labels)
 
@@ -66,8 +68,6 @@ def test(model, testLoader):
 
 def getInitialAcc():
     model = resnet18(weights=ResNet18_Weights.DEFAULT)
-    testSet = torchvision.datasets.ImageFolder(testPath, transform = transform) 
-    testLoader = torch.utils.data.DataLoader(testSet, batch_size = 8, shuffle=True)
     model.to(device)
     testAcc = test(model, testLoader)
     return testAcc
@@ -76,14 +76,11 @@ def doImage(phrase, dire):
     makeImage(phrase, dire)
 
     trainSet = torchvision.datasets.ImageFolder(trainPath, transform = transform)
-    testSet = torchvision.datasets.ImageFolder(testPath, transform = transform) 
-
-    trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = 8, shuffle=True)
-    testLoader = torch.utils.data.DataLoader(testSet, batch_size = 8, shuffle=True)
+    trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = batch_size, shuffle=True)
 
     model = resnet18(weights=ResNet18_Weights.DEFAULT)
     model.to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
     loss = torch.nn.CrossEntropyLoss()
 
     train(model, optimizer, loss, trainLoader)
@@ -93,5 +90,4 @@ def doImage(phrase, dire):
     return testAcc
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='my.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.DEBUG)
-    doImage("a", "a")
+    print('done')
