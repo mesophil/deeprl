@@ -10,8 +10,8 @@ def makeImage(phrase : str, dire : str):
     out_dir = os.path.join(current_dir, "../images")
 
     pipe = StableDiffusionPipeline.from_pretrained(
-        "runwayml/stable-diffusion-v1-5", #change to 2-1 eventually
-        # "stabilityai/stable-diffusion-2-1",
+        # "runwayml/stable-diffusion-v1-5", #change to 2-1 eventually
+        "stabilityai/stable-diffusion-2-1",
         torch_dtype=torch.float16,
         safety_checker=None,
         requires_safety_checker=False
