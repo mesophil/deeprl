@@ -2,6 +2,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 import glob
+import random
 
 import logging, os
 from processor import doImage, getInitialAcc
@@ -28,7 +29,7 @@ class trainEnv(gym.Env):
         #                                  "third" : spaces.Discrete(2),
         #                                  "fourth" : spaces.Discrete(2)})
 
-        self.action_space = spaces.MultiDiscrete([10, 2, 3, 3])
+        self.action_space = spaces.Discrete(10)
 
         self.classes = classes
 
@@ -36,6 +37,8 @@ class trainEnv(gym.Env):
             makeImage(c, c)
 
         self.currentAcc = self.initialAcc = getInitialAcc()
+
+        logging.info(f"Initial accuracy: {self.initialAcc}")
 
         self.observation_space = spaces.Box(low = 0, high = 1, shape=(1,), dtype=np.float32)
 
@@ -78,16 +81,23 @@ class trainEnv(gym.Env):
         sizes = ["multiple", "large"]
         vocab = ["on grass", "on sky", "on tree"]
 
-        for i in range(len(action)):
-            # logging.info('i: ' + str(i))
-            if i == 0:
-                phrase = " ".join([phrase, self.classes[action[i]]])
-            elif i == 1:
-                phrase = " ".join([phrase, sizes[action[i]]])
-            else:
-                phrase = " ".join([phrase, vocab[action[i]]])
+        # for i in range(len(action)):
+        #     # logging.info('i: ' + str(i))
+        #     if i == 0:
+        #         phrase = " ".join([phrase, self.classes[action[i]]])
+        #     elif i == 1:
+        #         phrase = " ".join([phrase, sizes[action[i]]])
+        #     else:
+        #         phrase = " ".join([phrase, vocab[action[i]]])
 
-        dire = self.classes[action[0]]
+        # dire = self.classes[action[0]]
+
+        phrase = " ".join([phrase, 
+                           self.classes[action], 
+                           sizes[random.randint(0, 1)], 
+                           vocab[random.randint(0, 2)]])
+
+        dire = self.classes[action]
 
         phrase = " ".join([phrase, "highly detailed, highly accurate"])
 
@@ -120,36 +130,38 @@ def main():
     logging.info('start')
 
     # for testing the environment
-    env = trainEnv()
-    check_env(env)
+    # env = trainEnv()
+    # check_env(env)
 
-    # testEnv()
+    testEnv()
 
 def testEnv():
     env = trainEnv()
 
     vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(maxLength=10))
 
-    model = DQN("MlpPolicy", env, verbose=1).learn(50)
+    logging.info(f"Training Model")
+    model = PPO("MlpPolicy", env, verbose=1).learn(20)
 
     obs = vec_env.reset()
     n_steps = 20
     
+    logging.info(f"Using model")
+
     for step in range(n_steps):
         action, _ = model.predict(obs, deterministic=True)
         logging.info(f"Step {step + 1}")
-        logging.info("Action: ", action)
         obs, reward, done, info = vec_env.step(action)
-        logging.info("obs=", obs, "reward=", reward, "done=", done)
+        logging.info(f"Reward: {reward[0]}")
         vec_env.render()
         if done:
             # Note that the VecEnv resets automatically
             # when a done signal is encountered
-            logging.info("Goal reached!", "reward=", reward)
+            logging.info("Done")
             break
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='my.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.DEBUG)
+    logging.basicConfig(filename='my2.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.INFO)
 
     main()

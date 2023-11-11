@@ -7,12 +7,13 @@ import torch
 import torchvision
 from torchvision import transforms
 from torchvision.models import resnet18, ResNet18_Weights
+import timm
 
 from tqdm import tqdm
 
 from make_image import makeImage
 
-from config import batch_size, learning_rate, momentum, numEpochs
+from config import batch_size, learning_rate, momentum, numEpochs, test_batch_size
 
 currentDir = os.path.dirname(os.path.realpath(__file__))
 
@@ -22,13 +23,13 @@ transform = torchvision.transforms.Compose([transforms.Resize(255),
 
 device = torch.device("cuda")
 
-logging.basicConfig(filename='my.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename='my2.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.INFO)
 
 trainPath = os.path.join(currentDir, "../images")
 testPath = os.path.join(currentDir, "../test_images")
 
 testSet = torchvision.datasets.CIFAR10(root=testPath, train=False, download=True, transform=transform)
-testLoader = torch.utils.data.DataLoader(testSet, batch_size = batch_size, shuffle=False)
+testLoader = torch.utils.data.DataLoader(testSet, batch_size = test_batch_size, shuffle=False)
 
 def train(model, optimizer, lossFunction, trainLoader, numEpochs = numEpochs):
     
@@ -67,7 +68,8 @@ def test(model, testLoader):
     return correct / total
 
 def getInitialAcc():
-    model = resnet18(weights=ResNet18_Weights.DEFAULT)
+    #model = resnet18(weights=ResNet18_Weights.DEFAULT)
+    model = timm.create_model("resnet18_cifar10", pretrained=True)
     model.to(device)
     testAcc = test(model, testLoader)
     return testAcc
@@ -78,7 +80,8 @@ def doImage(phrase, dire):
     trainSet = torchvision.datasets.ImageFolder(trainPath, transform = transform)
     trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = batch_size, shuffle=True)
 
-    model = resnet18(weights=ResNet18_Weights.DEFAULT)
+    #model = resnet18(weights=ResNet18_Weights.DEFAULT)
+    model = timm.create_model("resnet18_cifar10", pretrained=True)
     model.to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
     loss = torch.nn.CrossEntropyLoss()
