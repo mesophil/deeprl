@@ -2,6 +2,7 @@ name: venv
 channels:
   - pytorch
   - nvidia
+  - anaconda
   - conda-forge
   - defaults
 dependencies:
@@ -25,8 +26,8 @@ dependencies:
   - brotlipy=0.7.0=py311h5eee18b_1002
   - bzip2=1.0.8=h7b6447c_0
   - c-ares=1.19.1=h5eee18b_0
-  - ca-certificates=2023.7.22=hbcca054_0
-  - certifi=2023.7.22=pyhd8ed1ab_0
+  - ca-certificates=2023.08.22=h06a4308_0
+  - certifi=2023.7.22=py311h06a4308_0
   - cffi=1.15.1=py311h5eee18b_3
   - charset-normalizer=2.0.4=pyhd3eb1b0_0
   - click=8.1.7=unix_pyh707e725_0
@@ -92,6 +93,8 @@ dependencies:
   - libevent=2.1.12=hdbd6064_1
   - libffi=3.4.4=h6a678d5_0
   - libgcc-ng=11.2.0=h1234567_1
+  - libgfortran-ng=11.2.0=h00389a5_1
+  - libgfortran5=11.2.0=h1234567_1
   - libgomp=11.2.0=h1234567_1
   - libiconv=1.16=h7f8727e_2
   - libidn2=2.3.4=h5eee18b_0
@@ -160,6 +163,8 @@ dependencies:
   - requests=2.31.0=py311h06a4308_0
   - sacremoses=0.0.53=pyhd8ed1ab_0
   - safetensors=0.4.0=py311h24d97f6_0
+  - scikit-learn=1.2.2=py311h6a678d5_1
+  - scipy=1.11.3=py311h08b1b3b_0
   - setuptools=68.0.0=py311h06a4308_0
   - six=1.16.0=pyh6c4a22f_0
   - snappy=1.1.9=h295c915_0
@@ -167,6 +172,7 @@ dependencies:
   - stable-baselines3=2.1.0=pyhd8ed1ab_0
   - sympy=1.11.1=py311h06a4308_0
   - tbb=2021.8.0=hdb19cb5_0
+  - threadpoolctl=2.2.0=pyh0d69192_0
   - timm=0.9.10=pyhd8ed1ab_0
   - tk=8.6.12=h1ccaba5_0
   - tokenizers=0.13.3=py311h22610ee_0
@@ -188,4 +194,7 @@ dependencies:
   - zipp=3.17.0=pyhd8ed1ab_0
   - zlib=1.2.13=h5eee18b_0
   - zstd=1.5.5=hc292b87_0
+  - pip:
+      - evaluate==0.4.1
+      - responses==0.18.0
 prefix: /sda/Nico/anaconda3/envs/venv

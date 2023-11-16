@@ -13,50 +13,49 @@ from tqdm import tqdm
 
 from make_image import makeImage
 
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForImageClassification
 
 from config import batch_size, learning_rate, momentum, numEpochs, test_batch_size
 
+import evaluate
 
 currentDir = os.path.dirname(os.path.realpath(__file__))
-
-transform = torchvision.transforms.Compose([transforms.Resize(255),
-                                            transforms.CenterCrop(224),
-                                            transforms.ToTensor()])
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 logging.basicConfig(filename='my2.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.INFO)
 
+normalize = transforms.Normalize(mean=[0.507, 0.4865, 0.4408], std=[0.2673, 0.2564, 0.2761])
+
+trainTransform = torchvision.transforms.Compose([transforms.RandomCrop(32, padding=4),
+                                                 transforms.RandomHorizontalFlip(),
+                                                 transforms.ToTensor(),
+                                                 normalize])
+
+testTransform = torchvision.transforms.Compose([transforms.ToTensor(),
+                                                normalize])
+
 trainPath = os.path.join(currentDir, "../images")
 testPath = os.path.join(currentDir, "../test_images")
 
-testSet = torchvision.datasets.CIFAR10(root=testPath, train=False, download=True, transform=transform)
-testLoader = torch.utils.data.DataLoader(testSet, batch_size = test_batch_size, shuffle=False)
-
-#model = resnet18(weights=ResNet18_Weights.DEFAULT)
-
+testSet = torchvision.datasets.CIFAR10(root=testPath, train=False, download=True, transform=testTransform)
+testLoader = torch.utils.data.DataLoader(testSet, batch_size=test_batch_size, shuffle=False)
 
 def train(model, optimizer, lossFunction, trainLoader, numEpochs = numEpochs):
-    
-    model.train(True)
+    model.train()
     for epoch in range(numEpochs):
-        # for images, labels in tqdm(trainLoader):
-        #     images = images.cuda()
-        #     labels = labels.cuda()
+        for images, labels in tqdm(trainLoader):
+            images = images.cuda()
+            labels = labels.cuda()
 
-            # scores = model(images)
-            # predLoss = lossFunction(scores, labels)
-            # predLoss.backward()
-        for batch in tqdm(trainLoader):
-            batch = {k: v.to(device) for k, v in batch.items()}
-            outputs = model(**batch)
-            loss = outputs.loss
-            loss.backward()
-            optimizer.step()
             optimizer.zero_grad()
 
-def test(model, testLoader):
+            scores = model(images)
+            predLoss = lossFunction(scores, labels)
+            predLoss.backward()
+            optimizer.step()
+
+def test(model):
     model.eval()
 
     correct, total = 0, 0
@@ -74,28 +73,26 @@ def test(model, testLoader):
 
     return correct / total
 
+
 def getInitialAcc():
-    # model = resnet50(weights="../models/pytorch_model.bin")
-    model = AutoModelForSequenceClassification.from_pretrained("02shanky/vit-finetuned-cifar10", num_labels=10)
+    model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_repvgg_a0", pretrained=True)
     model.to(device)
-    testAcc = test(model, testLoader)
+    testAcc = test(model)
     return testAcc
 
 def doImage(phrase, dire):
     makeImage(phrase, dire)
 
-    trainSet = torchvision.datasets.ImageFolder(trainPath, transform = transform)
+    trainSet = torchvision.datasets.ImageFolder(trainPath, transform = trainTransform)
     trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = batch_size, shuffle=True)
-    model = resnet50(weights="../models/pytorch_model.bin")
+    model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_repvgg_a0", pretrained=True)
     model.to(device)
-
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
     loss = torch.nn.CrossEntropyLoss()
 
     train(model, optimizer, loss, trainLoader)
 
-    testAcc = test(model, testLoader)
-
+    testAcc = test(model)
     return testAcc
 
 if __name__ == "__main__":

@@ -17,21 +17,31 @@ from stable_baselines3.common.env_util import make_vec_env
 class trainEnv(gym.Env):
 
     def __init__(self, 
-                 classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'], 
+                 classes = ['default'], 
                  maxLength = 10) -> None:
         
         super(trainEnv).__init__()
 
-        self.maxLength = maxLength
+        # CIFAR 10
+        self.classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
+        # CIFAR 100
+        # self.classes = ['apple', 'aquarium_fish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle', 'bottle',
+        #                 'bowl', 'boy', 'bridge', 'bus', 'butterfly', 'camel', 'can', 'castle', 'caterpillar', 'cattle',
+        #                 'chair', 'chimpanzee', 'clock', 'cloud', 'cockroach', 'couch', 'crab', 'crocodile', 'cup', 'dinosaur',
+        #                 'dolphin', 'elephant', 'flatfish', 'forest', 'fox', 'girl', 'hamster', 'house', 'kangaroo', 'keyboard',
+        #                 'lamp', 'lawn_mower', 'leopard', 'lion', 'lizard', 'lobster', 'man', 'maple_tree', 'motorcycle', 'mountain',
+        #                 'mouse', 'mushroom', 'oak_tree', 'orange', 'orchid', 'otter', 'palm_tree', 'pear', 'pickup_truck', 'pine_tree',
+        #                 'plain', 'plate', 'poppy', 'porcupine', 'possum', 'rabbit', 'raccoon', 'ray', 'road', 'rocket',
+        #                 'rose', 'sea', 'seal', 'shark', 'shrew', 'skunk', 'skyscraper', 'snail', 'snake', 'spider',
+        #                 'squirrel', 'streetcar', 'sunflower', 'sweet_pepper', 'table', 'tank', 'telephone', 'television', 'tiger', 'tractor',
+        #                 'train', 'trout', 'tulip', 'turtle', 'wardrobe', 'whale', 'willow_tree', 'wolf', 'woman', 'worm']
+
         self.currLength = 0
-        # self.action_space = spaces.Dict({"first" : spaces.Discrete(10),
-        #                                  "second" : spaces.Discrete(2),
-        #                                  "third" : spaces.Discrete(2),
-        #                                  "fourth" : spaces.Discrete(2)})
+        self.numGenerated = {i:0 for i in self.classes}
 
-        self.action_space = spaces.Discrete(10)
-
-        self.classes = classes
+        self.maxLength = max(maxLength, len(self.classes))
+        self.action_space = spaces.Discrete(len(self.classes))
 
         for c in self.classes:
             makeImage(c, c)
@@ -47,6 +57,7 @@ class trainEnv(gym.Env):
 
         self.currLength = 0
         self.currentAcc = self.initialAcc
+        self.numGenerated = {i:0 for i in self.classes}
 
         # clear the images folder
         currentDir = os.path.dirname(os.path.realpath(__file__))
@@ -81,21 +92,11 @@ class trainEnv(gym.Env):
         sizes = ["multiple", "large"]
         vocab = ["on grass", "on sky", "on tree"]
 
-        # for i in range(len(action)):
-        #     # logging.info('i: ' + str(i))
-        #     if i == 0:
-        #         phrase = " ".join([phrase, self.classes[action[i]]])
-        #     elif i == 1:
-        #         phrase = " ".join([phrase, sizes[action[i]]])
-        #     else:
-        #         phrase = " ".join([phrase, vocab[action[i]]])
-
-        # dire = self.classes[action[0]]
-
         phrase = " ".join([phrase, 
                            self.classes[action], 
                            sizes[random.randint(0, 1)], 
                            vocab[random.randint(0, 2)]])
+        
 
         dire = self.classes[action]
 
@@ -111,12 +112,15 @@ class trainEnv(gym.Env):
         # options: entropy, accuracy
         reward = (newAcc - self.currentAcc) * 100
         self.currLength += 1
+        self.numGenerated[self.classes[action]] += 1
 
         # terminate when the max number of images is reached
         # add early stoppage when validation accuracy stagnates
         terminated = self.currLength >= self.maxLength
 
         self.currentAcc = newAcc
+
+        logging.info(f'Acc: {newAcc}')
         
         return (
             np.array([self.currentAcc]).astype(np.float32),
