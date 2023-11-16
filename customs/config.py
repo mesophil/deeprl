@@ -1,5 +1,5 @@
-batch_size = 16
-learning_rate = 1e-5
+batch_size = 32
+learning_rate = 1e-6
 momentum = 0.9
-numEpochs = 10
+numEpochs = 20
 test_batch_size = 128

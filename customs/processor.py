@@ -6,18 +6,12 @@ import os
 import torch
 import torchvision
 from torchvision import transforms
-from torchvision.models import resnet18, resnet50, ResNet18_Weights
-import timm
 
 from tqdm import tqdm
 
 from make_image import makeImage
 
-from transformers import AutoModelForImageClassification
-
 from config import batch_size, learning_rate, momentum, numEpochs, test_batch_size
-
-import evaluate
 
 currentDir = os.path.dirname(os.path.realpath(__file__))
 

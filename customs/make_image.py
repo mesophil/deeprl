@@ -21,7 +21,7 @@ def makeImage(phrase : str, dire : str):
     if not os.path.exists(os.path.join(out_dir, dire)):
         os.makedirs(os.path.join(out_dir, dire))
 
-    for _ in range(4):
+    for _ in range(10):
         image = pipe(phrase, negative_prompt="blurry, cropped, bad anatomy, worst quality, error, text, watermark", generator=generator).images[0]
         image.save(os.path.join(out_dir, dire, str(uuid.uuid4()) + '.png'))
 

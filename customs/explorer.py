@@ -97,10 +97,11 @@ class trainEnv(gym.Env):
                            sizes[random.randint(0, 1)], 
                            vocab[random.randint(0, 2)]])
         
-
         dire = self.classes[action]
 
         phrase = " ".join([phrase, "highly detailed, highly accurate"])
+
+        logging.info(f"Phrase: {phrase}")
 
         # send
         # phrase
@@ -120,7 +121,7 @@ class trainEnv(gym.Env):
 
         self.currentAcc = newAcc
 
-        logging.info(f'Acc: {newAcc}')
+        logging.info(f'Acc: {newAcc}, Length: {self.currLength}')
         
         return (
             np.array([self.currentAcc]).astype(np.float32),
@@ -132,10 +133,6 @@ class trainEnv(gym.Env):
 
 def main():
     logging.info('start')
-
-    # for testing the environment
-    # env = trainEnv()
-    # check_env(env)
 
     testEnv()
 
