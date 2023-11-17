@@ -88,14 +88,13 @@ class trainEnv(gym.Env):
         terminated, truncated = False, False
         info = {}
 
-        phrase = "High quality realistic photograph"
+        phrase = "High quality realistic"
         sizes = ["multiple", "large"]
         vocab = ["on grass", "on sky", "on tree"]
 
-        phrase = " ".join([phrase, 
-                           self.classes[action], 
-                           sizes[random.randint(0, 1)], 
-                           vocab[random.randint(0, 2)]])
+        phrase = " ".join([self.classes[action],
+                           phrase,
+                           sizes[random.randint(0, 1)]])
         
         dire = self.classes[action]
 

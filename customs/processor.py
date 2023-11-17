@@ -31,7 +31,9 @@ testTransform = torchvision.transforms.Compose([transforms.ToTensor(),
 
 trainPath = os.path.join(currentDir, "../images")
 testPath = os.path.join(currentDir, "../test_images")
+trainPathFull = os.path.join(currentDir, "../train_images")
 
+trainSetFull = torchvision.datasets.CIFAR10(root=trainPathFull, train=True, download=True, transform=trainTransform)
 testSet = torchvision.datasets.CIFAR10(root=testPath, train=False, download=True, transform=testTransform)
 testLoader = torch.utils.data.DataLoader(testSet, batch_size=test_batch_size, shuffle=False)
 
@@ -78,9 +80,12 @@ def doImage(phrase, dire):
     makeImage(phrase, dire)
 
     trainSet = torchvision.datasets.ImageFolder(trainPath, transform = trainTransform)
-    trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = batch_size, shuffle=True)
+    concatenatedTrainSet = torch.utils.data.ConcatDataset([trainSet, trainSetFull])
+    trainLoader = torch.utils.data.DataLoader(concatenatedTrainSet, batch_size = batch_size, shuffle=True)
+
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_repvgg_a0", pretrained=True)
     model.to(device)
+
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
     loss = torch.nn.CrossEntropyLoss()
 
