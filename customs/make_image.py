@@ -9,6 +9,9 @@ def makeImage(phrase : str, dire : str):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     out_dir = os.path.join(current_dir, "../images")
 
+    # experimental speedup
+    torch.backends.cuda.matmul.allow_tf32 = True
+
     pipe = StableDiffusionPipeline.from_pretrained(
         # "runwayml/stable-diffusion-v1-5", #change to 2-1 eventually
         "stabilityai/stable-diffusion-2-1",

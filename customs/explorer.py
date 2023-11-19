@@ -41,7 +41,7 @@ class trainEnv(gym.Env):
         self.numGenerated = {i:0 for i in self.classes}
 
         self.maxLength = max(maxLength, len(self.classes))
-        self.action_space = spaces.Discrete(len(self.classes))
+        self.action_space = spaces.MultiDiscrete([len(self.classes), len(self.classes)])
 
         for c in self.classes:
             makeImage(c, c)
@@ -50,7 +50,7 @@ class trainEnv(gym.Env):
 
         logging.info(f"Initial accuracy: {self.initialAcc}")
 
-        self.observation_space = spaces.Box(low = 0, high = 1, shape=(1,), dtype=np.float32)
+        self.observation_space = spaces.Box(low = 0, high = 1, shape=(12,), dtype=np.float32)
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed, options=options)
@@ -64,10 +64,6 @@ class trainEnv(gym.Env):
 
         imgPath = os.path.join(currentDir, "../images")
 
-        # for f in os.listdir(imgPath):
-        #     if not f.endswith('.png'): continue
-        #     os.remove(os.path.join(imgPath, f))
-
         pathsList = glob.glob(imgPath + '/**/*', recursive=True)
 
         for p in pathsList:
@@ -78,25 +74,31 @@ class trainEnv(gym.Env):
             if os.path.isdir(p):
                 os.rmdir(p)
 
+        # initial seed (free)
         for c in self.classes:
             makeImage(c, c)
 
-        return np.array([self.currentAcc]).astype(np.float32), {} #empty dict is for info
+        lengths = list(self.numGenerated.values())
+        obs = [self.currentAcc, self.currLength]
+        obs.extend(lengths)
+
+        return np.array(obs).astype(np.float32), {} #empty dict is for info
     
     def step(self, action):
         reward = 0
         terminated, truncated = False, False
         info = {}
 
-        phrase = "High quality realistic"
-        sizes = ["multiple", "large"]
+        phrase = "high quality hyperrealistic detailed full body"
+        sizes = ["multiple", "large", "small"]
         vocab = ["on grass", "on sky", "on tree"]
 
-        phrase = " ".join([self.classes[action],
+        phrase = " ".join([self.classes[action[0]],
+                           self.classes[action[1]],
                            phrase,
-                           sizes[random.randint(0, 1)]])
+                           sizes[random.randint(0, 2)]])
         
-        dire = self.classes[action]
+        dire = self.classes[action[0]]
 
         phrase = " ".join([phrase, "highly detailed, highly accurate"])
 
@@ -120,10 +122,14 @@ class trainEnv(gym.Env):
 
         self.currentAcc = newAcc
 
+        lengths = list(self.numGenerated.values())
+        obs = [self.currentAcc, self.currLength]
+        obs.extend(lengths)
+
         logging.info(f'Acc: {newAcc}, Length: {self.currLength}')
         
         return (
-            np.array([self.currentAcc]).astype(np.float32),
+            np.array(obs).astype(np.float32),
             reward,
             terminated,
             truncated,
@@ -141,17 +147,21 @@ def testEnv():
     vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(maxLength=10))
 
     logging.info(f"Training Model")
-    model = PPO("MlpPolicy", env, verbose=1).learn(20)
+    model = PPO("MlpPolicy", env, verbose=1)
+    model.learn(10)
 
     obs = vec_env.reset()
     n_steps = 20
     
     logging.info(f"Using model")
 
+    totalReward = 0
+
     for step in range(n_steps):
         action, _ = model.predict(obs, deterministic=True)
         logging.info(f"Step {step + 1}")
         obs, reward, done, info = vec_env.step(action)
+        totalReward += float(reward[0])
         logging.info(f"Reward: {reward[0]}")
         vec_env.render()
         if done:
@@ -159,6 +169,8 @@ def testEnv():
             # when a done signal is encountered
             logging.info("Done")
             break
+    
+    logging.info(f"Total Reward: {totalReward}")
 
 
 if __name__ == "__main__":

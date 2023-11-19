@@ -69,7 +69,6 @@ def test(model):
 
     return correct / total
 
-
 def getInitialAcc():
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_repvgg_a0", pretrained=True)
     model.to(device)
