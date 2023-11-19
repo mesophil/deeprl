@@ -119,6 +119,7 @@ class trainEnv(gym.Env):
         # terminate when the max number of images is reached
         # add early stoppage when validation accuracy stagnates
         terminated = self.currLength >= self.maxLength
+        truncated = self.currentAcc < self.initialAcc
 
         self.currentAcc = newAcc
 
@@ -160,11 +161,11 @@ def testEnv():
     for step in range(n_steps):
         action, _ = model.predict(obs, deterministic=True)
         logging.info(f"Step {step + 1}")
-        obs, reward, done, info = vec_env.step(action)
+        obs, reward, terminated, truncated, info = vec_env.step(action)
         totalReward += float(reward[0])
         logging.info(f"Reward: {reward[0]}")
         vec_env.render()
-        if done:
+        if terminated or truncated:
             # Note that the VecEnv resets automatically
             # when a done signal is encountered
             logging.info("Done")
