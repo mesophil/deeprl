@@ -114,7 +114,7 @@ class trainEnv(gym.Env):
         # options: entropy, accuracy
         reward = (newAcc - self.currentAcc) * 100
         self.currLength += 1
-        self.numGenerated[self.classes[action]] += 1
+        self.numGenerated[self.classes[action[0]]] += 1
 
         # terminate when the max number of images is reached
         # add early stoppage when validation accuracy stagnates
