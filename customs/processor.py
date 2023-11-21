@@ -11,11 +11,13 @@ from tqdm import tqdm
 
 from make_image import makeImage
 
-from config import batch_size, learning_rate, momentum, numEpochs, test_batch_size
+from config import batch_size, learning_rate, momentum, numEpochs, test_batch_size, numClasses
+
+from accelerate import Accelerator
 
 currentDir = os.path.dirname(os.path.realpath(__file__))
 
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+#device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 logging.basicConfig(filename='my2.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.INFO)
 
@@ -39,27 +41,39 @@ testLoader = torch.utils.data.DataLoader(testSet, batch_size=test_batch_size, sh
 
 def train(model, optimizer, lossFunction, trainLoader, numEpochs = numEpochs):
     model.train()
+    
+    ## EXPERIMENTAL
+    accelerator = Accelerator()
+    model, optimizer, trainLoader = accelerator.prepare(model, optimizer, trainLoader)
+
     for epoch in range(numEpochs):
         for images, labels in tqdm(trainLoader):
-            images = images.cuda()
-            labels = labels.cuda()
+            # images = images.cuda()
+            # labels = labels.cuda()
 
             optimizer.zero_grad()
 
             scores = model(images)
             predLoss = lossFunction(scores, labels)
-            predLoss.backward()
+            # predLoss.backward()
+            accelerator.backward(predLoss)
             optimizer.step()
 
-def test(model):
+def test(model, testLoader):
     model.eval()
 
+    # EXPERIMENTAL
+    accelerator = Accelerator()
+    model, testLoader = accelerator.prepare(model, testLoader)
+
     correct, total = 0, 0
+    classCorrect = [0 for c in range(numClasses)]
+    classTotals = [0 for c in range(numClasses)]
 
     with torch.no_grad():
         for inputs, labels in tqdm(testLoader):
-            inputs = inputs.cuda()
-            labels = labels.cuda()
+            # inputs = inputs.cuda()
+            # labels = labels.cuda()
 
             scores = model(inputs)
             _, preds = torch.max(scores.data, 1)
@@ -67,13 +81,21 @@ def test(model):
             total += labels.size(0)
             correct += (preds == labels).sum().item()
 
-    return correct / total
+            for c in range(numClasses):
+                classCorrect[c] += ((preds == labels) * (labels == c)).float().sum().item()
+                classTotals[c] += (labels == c).sum().item()
+
+    overallAcc = correct / total
+    classAccuracies = [i/j for i, j in zip(classCorrect, classTotals)]
+    
+    return overallAcc, classAccuracies
 
 def getInitialAcc():
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_repvgg_a0", pretrained=True)
-    model.to(device)
-    testAcc = test(model)
-    return testAcc
+    # model.to(device)
+
+    testAcc, testClassAcc = test(model, testLoader)
+    return testAcc, testClassAcc
 
 def doImage(phrase, dire):
     makeImage(phrase, dire)
@@ -83,15 +105,15 @@ def doImage(phrase, dire):
     trainLoader = torch.utils.data.DataLoader(concatenatedTrainSet, batch_size = batch_size, shuffle=True)
 
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_repvgg_a0", pretrained=True)
-    model.to(device)
+    # model.to(device)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
     loss = torch.nn.CrossEntropyLoss()
 
     train(model, optimizer, loss, trainLoader)
 
-    testAcc = test(model)
-    return testAcc
+    testAcc, testClassAcc = test(model, testLoader)
+    return testAcc, testClassAcc
 
 if __name__ == "__main__":
     print(getInitialAcc())

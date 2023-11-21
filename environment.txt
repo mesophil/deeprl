@@ -1,15 +1,15 @@
 name: venv
 channels:
+  - anaconda
   - pytorch
   - nvidia
-  - anaconda
   - conda-forge
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
   - _openmp_mutex=5.1=1_gnu
   - abseil-cpp=20211102.0=h27087fc_1
-  - accelerate=0.23.0=pyhd8ed1ab_0
+  - accelerate=0.24.1=pyhd8ed1ab_0
   - aiohttp=3.8.5=py311h5eee18b_0
   - aiosignal=1.3.1=pyhd8ed1ab_0
   - arrow-cpp=11.0.0=h374c478_2
@@ -26,8 +26,8 @@ dependencies:
   - brotlipy=0.7.0=py311h5eee18b_1002
   - bzip2=1.0.8=h7b6447c_0
   - c-ares=1.19.1=h5eee18b_0
-  - ca-certificates=2023.08.22=h06a4308_0
-  - certifi=2023.7.22=py311h06a4308_0
+  - ca-certificates=2023.11.17=hbcca054_0
+  - certifi=2023.11.17=pyhd8ed1ab_0
   - cffi=1.15.1=py311h5eee18b_3
   - charset-normalizer=2.0.4=pyhd3eb1b0_0
   - click=8.1.7=unix_pyh707e725_0

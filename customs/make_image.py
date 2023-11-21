@@ -2,9 +2,8 @@ from diffusers import StableDiffusionPipeline
 import torch, os
 import uuid
 
-
 def makeImage(phrase : str, dire : str):
-    generator = torch.Generator(device="cuda").manual_seed(466)
+    generator = torch.Generator(device="cuda:1").manual_seed(466)
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
     out_dir = os.path.join(current_dir, "../images")
@@ -13,13 +12,12 @@ def makeImage(phrase : str, dire : str):
     torch.backends.cuda.matmul.allow_tf32 = True
 
     pipe = StableDiffusionPipeline.from_pretrained(
-        # "runwayml/stable-diffusion-v1-5", #change to 2-1 eventually
         "stabilityai/stable-diffusion-2-1",
         torch_dtype=torch.float16,
         safety_checker=None,
         requires_safety_checker=False
     )
-    pipe.to("cuda")
+    pipe.to("cuda:1")
 
     if not os.path.exists(os.path.join(out_dir, dire)):
         os.makedirs(os.path.join(out_dir, dire))

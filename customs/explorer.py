@@ -17,13 +17,13 @@ from stable_baselines3.common.env_util import make_vec_env
 class trainEnv(gym.Env):
 
     def __init__(self, 
-                 classes = ['default'], 
+                 classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'], 
                  maxLength = 10) -> None:
         
         super(trainEnv).__init__()
 
         # CIFAR 10
-        self.classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+        self.classes = classes
 
         # CIFAR 100
         # self.classes = ['apple', 'aquarium_fish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle', 'bottle',
@@ -38,7 +38,6 @@ class trainEnv(gym.Env):
         #                 'train', 'trout', 'tulip', 'turtle', 'wardrobe', 'whale', 'willow_tree', 'wolf', 'woman', 'worm']
 
         self.currLength = 0
-        self.numGenerated = {i:0 for i in self.classes}
 
         self.maxLength = max(maxLength, len(self.classes))
         self.action_space = spaces.MultiDiscrete([len(self.classes), len(self.classes)])
@@ -46,9 +45,10 @@ class trainEnv(gym.Env):
         for c in self.classes:
             makeImage(c, c)
 
-        self.currentAcc = self.initialAcc = getInitialAcc()
+        self.initialAcc, self.initialClassAccuracies = getInitialAcc()
+        self.currentAcc, self.classAccuracies = self.initialAcc, self.initialClassAccuracies
 
-        logging.info(f"Initial accuracy: {self.initialAcc}")
+        logging.info(f"Initial accuracies: {self.initialAcc}, Class: {self.initialClassAccuracies}")
 
         self.observation_space = spaces.Box(low = 0, high = 1, shape=(12,), dtype=np.float32)
 
@@ -56,8 +56,7 @@ class trainEnv(gym.Env):
         super().reset(seed=seed, options=options)
 
         self.currLength = 0
-        self.currentAcc = self.initialAcc
-        self.numGenerated = {i:0 for i in self.classes}
+        self.currentAcc, self.classAccuracies = self.initialAcc, self.initialClassAccuracies
 
         # clear the images folder
         currentDir = os.path.dirname(os.path.realpath(__file__))
@@ -78,9 +77,8 @@ class trainEnv(gym.Env):
         for c in self.classes:
             makeImage(c, c)
 
-        lengths = list(self.numGenerated.values())
         obs = [self.currentAcc, self.currLength]
-        obs.extend(lengths)
+        obs.extend(self.classAccuracies)
 
         return np.array(obs).astype(np.float32), {} #empty dict is for info
     
@@ -89,7 +87,7 @@ class trainEnv(gym.Env):
         terminated, truncated = False, False
         info = {}
 
-        phrase = "high quality hyperrealistic detailed full body"
+        phrase = "high quality hyperrealistic"
         sizes = ["multiple", "large", "small"]
         vocab = ["on grass", "on sky", "on tree"]
 
@@ -108,13 +106,12 @@ class trainEnv(gym.Env):
         # phrase
         # to
         # stable diffusion
-        newAcc = doImage(phrase, dire)
+        newAcc, newClassAcc = doImage(phrase, dire)
 
         # add a reward equal to the accuracy improvement in percent
         # options: entropy, accuracy
         reward = (newAcc - self.currentAcc) * 100
         self.currLength += 1
-        self.numGenerated[self.classes[action[0]]] += 1
 
         # terminate when the max number of images is reached
         # add early stoppage when validation accuracy stagnates
@@ -123,11 +120,10 @@ class trainEnv(gym.Env):
 
         self.currentAcc = newAcc
 
-        lengths = list(self.numGenerated.values())
         obs = [self.currentAcc, self.currLength]
-        obs.extend(lengths)
+        obs.extend(newClassAcc)
 
-        logging.info(f'Acc: {newAcc}, Length: {self.currLength}')
+        logging.info(f'Length: {self.currLength}, Acc: {newAcc}, Class Acc: {newClassAcc}')
         
         return (
             np.array(obs).astype(np.float32),
