@@ -87,9 +87,10 @@ class trainEnv(gym.Env):
         terminated, truncated = False, False
         info = {}
 
-        phrase = "high quality hyperrealistic"
+        phrase = "high quality hyperrealistic" # "an image easily confused between " class " and " class
         sizes = ["multiple", "large", "small"]
         vocab = ["on grass", "on sky", "on tree"]
+        # [in snow, in rain, corrupted, blurry, fog]
 
         phrase = " ".join([self.classes[action[0]],
                            self.classes[action[1]],
