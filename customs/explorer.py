@@ -12,6 +12,7 @@ from stable_baselines3.common.env_checker import check_env
 
 from stable_baselines3 import PPO, A2C, DQN
 from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.callbacks import CheckpointCallback
 
 
 class trainEnv(gym.Env):
@@ -40,7 +41,25 @@ class trainEnv(gym.Env):
         self.currLength = 0
 
         self.maxLength = max(maxLength, len(self.classes))
-        self.action_space = spaces.MultiDiscrete([len(self.classes), len(self.classes)])
+
+        # changed to have only half the class in each box for speed (just for testing)
+        self.action_space = spaces.MultiDiscrete([int(len(self.classes)/2), int(len(self.classes)/2)])
+
+
+        # clear the images folder
+        currentDir = os.path.dirname(os.path.realpath(__file__))
+
+        imgPath = os.path.join(currentDir, "../images")
+
+        pathsList = glob.glob(imgPath + '/**/*', recursive=True)
+
+        for p in pathsList:
+            if os.path.isfile(p) and p.endswith('.png'):
+                os.remove(p)
+
+        for p in pathsList:
+            if os.path.isdir(p):
+                os.rmdir(p)
 
         for c in self.classes:
             makeImage(c, c)
@@ -87,15 +106,17 @@ class trainEnv(gym.Env):
         terminated, truncated = False, False
         info = {}
 
-        phrase = "high quality hyperrealistic" # "an image easily confused between " class " and " class
-        sizes = ["multiple", "large", "small"]
-        vocab = ["on grass", "on sky", "on tree"]
         # [in snow, in rain, corrupted, blurry, fog]
+        domains = ['photo', 'drawing', 'painting', 'sketch', 'collage', 'poster', 'digital art image', 'rock drawing', 'stick figure', '3D rendering']
 
-        phrase = " ".join([self.classes[action[0]],
-                           self.classes[action[1]],
-                           phrase,
-                           sizes[random.randint(0, 2)]])
+        phrase = " ".join(["A",
+                           domains[np.random.randint(0, 9)],
+                           "of a",
+                           self.classes[action[0]],
+                           "and",
+                           self.classes[int(len(self.classes)/2) + action[1]],
+                           "hybrid"
+                           ])
         
         dire = self.classes[action[0]]
 
@@ -144,9 +165,17 @@ def testEnv():
 
     vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(maxLength=10))
 
+    checkpoint_callback = CheckpointCallback(
+    save_freq=2,
+    save_path="../model_logs/",
+    name_prefix="rl_model",
+    save_replay_buffer=True,
+    save_vecnormalize=True,
+    )
+
     logging.info(f"Training Model")
     model = PPO("MlpPolicy", env, verbose=1)
-    model.learn(10)
+    model.learn(5, callback=checkpoint_callback)
 
     obs = vec_env.reset()
     n_steps = 20
@@ -158,11 +187,11 @@ def testEnv():
     for step in range(n_steps):
         action, _ = model.predict(obs, deterministic=True)
         logging.info(f"Step {step + 1}")
-        obs, reward, terminated, truncated, info = vec_env.step(action)
+        obs, reward, terminated, _ = vec_env.step(action)
         totalReward += float(reward[0])
         logging.info(f"Reward: {reward[0]}")
         vec_env.render()
-        if terminated or truncated:
+        if terminated:
             # Note that the VecEnv resets automatically
             # when a done signal is encountered
             logging.info("Done")
