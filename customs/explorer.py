@@ -43,7 +43,7 @@ class trainEnv(gym.Env):
         self.maxLength = max(maxLength, len(self.classes))
 
         # changed to have only half the class in each box for speed (just for testing)
-        self.action_space = spaces.MultiDiscrete([int(len(self.classes)/2), int(len(self.classes)/2)])
+        self.action_space = spaces.MultiDiscrete([len(self.classes), len(self.classes)])
 
 
         # clear the images folder
@@ -61,8 +61,7 @@ class trainEnv(gym.Env):
             if os.path.isdir(p):
                 os.rmdir(p)
 
-        for c in self.classes:
-            makeImage(c, c)
+        self.init_classes()
 
         self.initialAcc, self.initialClassAccuracies = getInitialAcc()
         self.currentAcc, self.classAccuracies = self.initialAcc, self.initialClassAccuracies
@@ -93,8 +92,7 @@ class trainEnv(gym.Env):
                 os.rmdir(p)
 
         # initial seed (free)
-        for c in self.classes:
-            makeImage(c, c)
+        self.init_classes()
 
         obs = [self.currentAcc, self.currLength]
         obs.extend(self.classAccuracies)
@@ -106,21 +104,26 @@ class trainEnv(gym.Env):
         terminated, truncated = False, False
         info = {}
 
+        c = [self.classes[action[0]], self.classes[action[1]]]
+
         # [in snow, in rain, corrupted, blurry, fog]
-        domains = ['photo', 'drawing', 'painting', 'sketch', 'collage', 'poster', 'digital art image', 'rock drawing', 'stick figure', '3D rendering']
+        domains = ['photo', 'drawing', 'painting', 'digital art image']
 
         phrase = " ".join(["A",
-                           domains[np.random.randint(0, 9)],
+                           domains[np.random.randint(0, 3)],
                            "of a",
-                           self.classes[action[0]],
+                           c[0],
+                           "(animal)" if c[0] == 'bird' or c[0] == 'cat' or c[0] == 'deer' or c[0] == 'dog' or c[0] == 'frog' or c[0] == 'horse' else "",
                            "and",
-                           self.classes[int(len(self.classes)/2) + action[1]],
-                           "hybrid"
+                           c[1],
+                           "(animal)" if c[1] == 'bird' or c[1] == 'cat' or c[1] == 'deer' or c[1] == 'dog' or c[1] == 'frog' or c[1] == 'horse' else "",
                            ])
         
-        dire = self.classes[action[0]]
+        dire = c[0]
 
-        phrase = " ".join([phrase, "highly detailed, highly accurate"])
+        # for ablation
+        # phrase = c[0]
+        # phrase = self.classes[np.random.randint(0, 9)]
 
         logging.info(f"Phrase: {phrase}")
 
@@ -154,6 +157,15 @@ class trainEnv(gym.Env):
             truncated,
             info,
         )
+    
+    def init_classes(self):
+        pass
+        # for c in self.classes:
+        #     if (c == 'bird' or c == 'cat' or c == 'deer' or c == 'dog' or c == 'frog' or c == 'horse'):
+        #         makeImage(" ".join([c, '(animal)']), c)
+        #     else:
+        #         makeImage(c, c)
+
 
 def main():
     logging.info('start')
