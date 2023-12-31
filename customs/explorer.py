@@ -19,7 +19,7 @@ class trainEnv(gym.Env):
 
     def __init__(self, 
                  classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'], 
-                 maxLength = 10) -> None:
+                 maxLength = 25) -> None:
         
         super(trainEnv).__init__()
 
@@ -133,9 +133,9 @@ class trainEnv(gym.Env):
         # stable diffusion
         newAcc, newClassAcc = doImage(phrase, dire)
 
-        # add a reward equal to the accuracy improvement in percent
+        # add a reward equal to the accuracy improvement on the test/validation set
         # options: entropy, accuracy
-        reward = (newAcc - self.currentAcc) * 100
+        reward = (newAcc - self.currentAcc)
         self.currLength += 1
 
         # terminate when the max number of images is reached

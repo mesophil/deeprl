@@ -91,7 +91,7 @@ def test(model, testLoader):
     return overallAcc, classAccuracies
 
 def getInitialAcc():
-    model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_resnet56", pretrained=True)
+    model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_resnet20", pretrained=True)
     # model.to(device)
 
     testAcc, testClassAcc = test(model, testLoader)
@@ -104,7 +104,7 @@ def doImage(phrase, dire):
     concatenatedTrainSet = torch.utils.data.ConcatDataset([trainSet, trainSetFull])
     trainLoader = torch.utils.data.DataLoader(concatenatedTrainSet, batch_size = batch_size, shuffle=True)
 
-    model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_resnet56", pretrained=True)
+    model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_resnet20", pretrained=True)
     # model.to(device)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
