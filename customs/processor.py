@@ -102,7 +102,8 @@ def doImage(phrase, dire):
 
     trainSet = torchvision.datasets.ImageFolder(trainPath, transform = trainTransform)
     concatenatedTrainSet = torch.utils.data.ConcatDataset([trainSet, trainSetFull])
-    trainLoader = torch.utils.data.DataLoader(concatenatedTrainSet, batch_size = batch_size, shuffle=True)
+    trainLoader = torch.utils.data.DataLoader(concatenatedTrainSet, batch_size = batch_size, shuffle=True,
+                                              pin_memory=True, num_workers=8)
 
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_resnet20", pretrained=True)
     # model.to(device)

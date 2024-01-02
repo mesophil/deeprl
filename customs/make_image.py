@@ -5,7 +5,7 @@ import numpy as np
 from config import numImages, numDenoisingSteps
 
 def makeImage(phrase : str, dire : str):
-    generator = torch.Generator(device="cuda:1").manual_seed(466)
+    generator = torch.Generator(device="cuda").manual_seed(466)
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
     out_dir = os.path.join(current_dir, "../images")

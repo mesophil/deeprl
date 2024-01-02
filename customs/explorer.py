@@ -14,6 +14,8 @@ from stable_baselines3 import PPO, A2C, DQN
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import CheckpointCallback
 
+from config import rl_lr, rl_batch, rl_epochs, rl_steps, rl_timesteps
+
 
 class trainEnv(gym.Env):
 
@@ -175,22 +177,29 @@ def main():
 def testEnv():
     env = trainEnv()
 
-    vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(maxLength=10))
+    vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(maxLength=25))
 
-    checkpoint_callback = CheckpointCallback(
-    save_freq=2,
-    save_path="../model_logs/",
-    name_prefix="rl_model",
-    save_replay_buffer=True,
-    save_vecnormalize=True,
-    )
+    checkpoint_callback = CheckpointCallback(save_freq=2,
+                                             save_path="../model_logs/",
+                                             name_prefix="rl_model",
+                                             save_replay_buffer=True,
+                                             save_vecnormalize=True,
+                                             )
 
     logging.info(f"Training Model")
-    model = PPO("MlpPolicy", env, verbose=1)
-    model.learn(5, callback=checkpoint_callback)
+    model = PPO(policy="MlpPolicy", 
+                env=env, 
+                learning_rate=rl_lr, 
+                batch_size=rl_batch, 
+                n_epochs=rl_epochs, 
+                n_steps=rl_steps, 
+                verbose=1
+                )
+    
+    model.learn(total_timesteps=rl_timesteps, callback=checkpoint_callback)
 
     obs = vec_env.reset()
-    n_steps = 20
+    n_steps = 1000
     
     logging.info(f"Using model")
 
