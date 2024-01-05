@@ -31,6 +31,7 @@ trainTransform = torchvision.transforms.Compose([transforms.RandomCrop(32, paddi
 testTransform = torchvision.transforms.Compose([transforms.ToTensor(),
                                                 normalize])
 
+
 trainPath = os.path.join(currentDir, "../images")
 testPath = os.path.join(currentDir, "../test_images")
 trainPathFull = os.path.join(currentDir, "../train_images")

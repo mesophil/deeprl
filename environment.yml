@@ -2,6 +2,7 @@ name: venv
 channels:
   - anaconda
   - pytorch
+  - esri
   - nvidia
   - conda-forge
   - defaults
@@ -26,8 +27,8 @@ dependencies:
   - brotlipy=0.7.0=py311h5eee18b_1002
   - bzip2=1.0.8=h7b6447c_0
   - c-ares=1.19.1=h5eee18b_0
-  - ca-certificates=2023.11.17=hbcca054_0
-  - certifi=2023.11.17=pyhd8ed1ab_0
+  - ca-certificates=2023.12.12=h06a4308_0
+  - certifi=2023.11.17=py311h06a4308_0
   - cffi=1.15.1=py311h5eee18b_3
   - charset-normalizer=2.0.4=pyhd3eb1b0_0
   - click=8.1.7=unix_pyh707e725_0
@@ -46,6 +47,7 @@ dependencies:
   - datasets=2.14.6=pyhd8ed1ab_0
   - diffusers=0.18.2=pyhd8ed1ab_0
   - dill=0.3.7=pyhd8ed1ab_0
+  - einops=0.3.2=py_0
   - farama-notifications=0.0.4=py311h06a4308_0
   - ffmpeg=4.3=hf484d3e_0
   - filelock=3.9.0=py311h06a4308_0

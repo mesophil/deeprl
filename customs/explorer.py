@@ -193,6 +193,8 @@ def testEnv():
                 batch_size=rl_batch, 
                 n_epochs=rl_epochs, 
                 n_steps=rl_steps, 
+                ent_coef=0.01,
+                vf_coef=0.5,
                 verbose=1
                 )
     
