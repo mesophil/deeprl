@@ -14,8 +14,18 @@ rl_steps = 2048
 rl_timesteps = 10000
 
 
-pretrain_bs = 128
+# CIFAR10 ResNet18/20/50/56
+
+# pretrain_bs = 128
+# pretrain_epochs = 200
+# pretrain_lr = 1e-1
+# pretrain_momentum = 0.9
+# pretrain_weight_decay = 5e-4
+
+# CIFAR10 VIT
+
+pretrain_bs = 100
 pretrain_epochs = 200
-pretrain_lr = 1e-1
+pretrain_lr = 1e-4
 pretrain_momentum = 0.9
 pretrain_weight_decay = 5e-4

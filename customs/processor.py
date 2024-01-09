@@ -21,7 +21,9 @@ currentDir = os.path.dirname(os.path.realpath(__file__))
 
 logging.basicConfig(filename='my2.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.INFO)
 
-normalize = transforms.Normalize(mean=[0.507, 0.4865, 0.4408], std=[0.2673, 0.2564, 0.2761])
+# normalize = transforms.Normalize(mean=[0.507, 0.4865, 0.4408], std=[0.2673, 0.2564, 0.2761])
+
+normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
 
 trainTransform = torchvision.transforms.Compose([transforms.RandomCrop(32, padding=4),
                                                  transforms.RandomHorizontalFlip(),
@@ -37,10 +39,14 @@ testPath = os.path.join(currentDir, "../test_images")
 trainPathFull = os.path.join(currentDir, "../train_images")
 
 trainSetFull = torchvision.datasets.CIFAR10(root=trainPathFull, train=True, download=True, transform=trainTransform)
-testSet = torchvision.datasets.CIFAR10(root=testPath, train=False, download=True, transform=testTransform)
-testLoader = torch.utils.data.DataLoader(testSet, batch_size=test_batch_size, shuffle=False)
 
-def train(model, optimizer, lossFunction, trainLoader, numEpochs = numEpochs):
+testSet = torchvision.datasets.CIFAR10(root=testPath, train=False, download=True, transform=testTransform)
+testSet, validationSet = torch.utils.data.random_split(testSet, [int(len(testSet)/2), int(len(testSet)/2)])
+
+testLoader = torch.utils.data.DataLoader(testSet, batch_size=test_batch_size, shuffle=False)
+validationLoader = torch.utils.data.DataLoader(validationSet, batch_size=test_batch_size, shuffle=False)
+
+def train(model, optimizer, lossFunction, sched, trainLoader, numEpochs = numEpochs):
     model.train()
     
     ## EXPERIMENTAL
@@ -59,6 +65,8 @@ def train(model, optimizer, lossFunction, trainLoader, numEpochs = numEpochs):
             # predLoss.backward()
             accelerator.backward(predLoss)
             optimizer.step()
+        
+        sched.step()
 
 def test(model, testLoader):
     model.eval()
@@ -91,6 +99,34 @@ def test(model, testLoader):
     
     return overallAcc, classAccuracies
 
+def validate(model, validationLoader):
+    model.eval()
+
+    # EXPERIMENTAL
+    accelerator = Accelerator()
+    model, validationLoader = accelerator.prepare(model, validationLoader)
+
+    correct, total = 0, 0
+    classCorrect = [0 for c in range(numClasses)]
+    classTotals = [0 for c in range(numClasses)]
+
+    with torch.no_grad():
+        for inputs, labels in tqdm(validationLoader):
+            # inputs = inputs.cuda()
+            # labels = labels.cuda()
+
+            scores = model(inputs)
+            _, preds = torch.max(scores.data, 1)
+
+            total += labels.size(0)
+            correct += (preds == labels).sum().item()
+
+            for c in range(numClasses):
+                classCorrect[c] += ((preds == labels) * (labels == c)).float().sum().item()
+                classTotals[c] += (labels == c).sum().item()
+
+    overallAcc = correct / total
+
 def getInitialAcc():
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_resnet20", pretrained=True)
     # model.to(device)
@@ -110,11 +146,12 @@ def doImage(phrase, dire):
     # model.to(device)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs)
     loss = torch.nn.CrossEntropyLoss()
 
-    train(model, optimizer, loss, trainLoader)
+    train(model, optimizer, loss, sched, trainLoader)
 
-    testAcc, testClassAcc = test(model, testLoader)
+    testAcc, testClassAcc = validate(model, testLoader)
     return testAcc, testClassAcc
 
 if __name__ == "__main__":

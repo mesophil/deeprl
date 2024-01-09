@@ -7,13 +7,17 @@ import torch
 import torchvision
 from torchvision import transforms
 
+import timm
+
 from tqdm import tqdm
 
 from config import pretrain_bs, pretrain_lr, pretrain_momentum, pretrain_epochs, pretrain_weight_decay, test_batch_size, numClasses
 
 from architectures.resnet import resnet20, resnet56
 
-device = torch.device("cuda:1") if torch.cuda.is_available() else torch.device("cpu")
+from architectures.vit import ViT
+
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 currentDir = os.path.dirname(os.path.realpath(__file__))
 
@@ -27,11 +31,13 @@ logging.basicConfig(filename='pretrain.log', format='%(asctime)s : %(levelname)s
 normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
 
 trainTransform = torchvision.transforms.Compose([transforms.RandomCrop(32, padding=4),
+                                                 transforms.Resize(384), #VIT TIMM ONLY REMOVE IF NOT USING
                                                  transforms.RandomHorizontalFlip(),
                                                  transforms.ToTensor(),
                                                  normalize])
 
 testTransform = torchvision.transforms.Compose([transforms.ToTensor(),
+                                                transforms.Resize(384), #VIT TIMM ONLY REMOVE IF NOT USING
                                                 normalize])
 
 savePath = os.path.join(currentDir, "../models")
@@ -98,9 +104,21 @@ def main():
     # CHANGE THIS
     # important note: torchvision hub resnet has an imagenet config; we gotta make our own resnet for this to work.
 
-    model = resnet20()
+    # model = resnet20()
+
+    # model = ViT(image_size=32, patch_size=4, num_classes=numClasses, dim=512, 
+    #             depth=6, heads=8, mlp_dim=512, dropout=0.1, emb_dropout=0.1)
+
+    model = timm.create_model("vit_base_patch16_384", pretrained=True) # remove "VIT TIMM ONLY" lines of code if not using
+    model.head = torch.nn.Linear(model.head.in_features, 10)
+
+    # model.to(device)
+
+    model = torch.nn.DataParallel(model) # parallel data instead of model.to(device)
 
     model.to(device)
+
+    # RUN AGAIN WITH THESE SETTINGS TO SEE IF STILL MEMORY ISSUE - JAN 04 2024
 
     optimizer = torch.optim.SGD(model.parameters(), lr=pretrain_lr, momentum=pretrain_momentum, weight_decay=pretrain_weight_decay)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=pretrain_epochs)
@@ -113,7 +131,7 @@ def main():
     print(testAcc)
     logging.info(testAcc)
 
-    torch.save(model.state_dict(), "".join([savePath, "/cifar_resnet20.pt"]))
+    torch.save(model.state_dict(), "".join([savePath, "/cifar_vit.pt"]))
 
 
 if __name__ == "__main__":

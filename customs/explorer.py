@@ -5,7 +5,7 @@ import glob
 import random
 
 import logging, os
-from processor import doImage, getInitialAcc
+from processor import doImage, getInitialAcc, test
 from make_image import makeImage
 
 from stable_baselines3.common.env_checker import check_env

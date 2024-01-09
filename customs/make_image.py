@@ -33,4 +33,7 @@ def makeImage(phrase : str, dire : str):
         image.save(os.path.join(out_dir, dire, str(uuid.uuid4()) + '.png'))
 
 if __name__ == "__main__":
-    makeImage("frog", "frog")
+    c = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
+    for s in c:
+        makeImage(s, s)
