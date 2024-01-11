@@ -179,8 +179,8 @@ def testEnv():
 
     vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(maxLength=25))
 
-    checkpoint_callback = CheckpointCallback(save_freq=2,
-                                             save_path="../model_logs/",
+    checkpoint_callback = CheckpointCallback(save_freq=1000,
+                                             save_path="./model_logs/",
                                              name_prefix="rl_model",
                                              save_replay_buffer=True,
                                              save_vecnormalize=True,

@@ -29,3 +29,6 @@ pretrain_epochs = 200
 pretrain_lr = 1e-4
 pretrain_momentum = 0.9
 pretrain_weight_decay = 5e-4
+
+
+# TINYIMAGENET EFFICIENTNET

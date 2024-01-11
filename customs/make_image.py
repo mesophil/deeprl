@@ -19,7 +19,7 @@ def makeImage(phrase : str, dire : str):
         safety_checker=None,
         requires_safety_checker=False
     )
-    pipe.to("cuda:1")
+    pipe.to("cuda")
 
     if not os.path.exists(os.path.join(out_dir, dire)):
         os.makedirs(os.path.join(out_dir, dire))

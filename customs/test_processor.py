@@ -19,7 +19,7 @@ currentDir = os.path.dirname(os.path.realpath(__file__))
 
 #device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-logging.basicConfig(filename='cifar10.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.INFO)
+logging.basicConfig(filename='my2.log', format='%(asctime)s : %(levelname)s : %(message)s', encoding='utf-8', level=logging.INFO)
 
 # normalize = transforms.Normalize(mean=[0.507, 0.4865, 0.4408], std=[0.2673, 0.2564, 0.2761])
 
@@ -38,8 +38,7 @@ trainPath = os.path.join(currentDir, "../images")
 testPath = os.path.join(currentDir, "../test_images")
 trainPathFull = os.path.join(currentDir, "../train_images")
 
-trainSetFull = torchvision.datasets.CIFAR10(root=trainPathFull, train=True, download=True, transform=trainTransform)
-
+#trainSetFull = torchvision.datasets.CIFAR10(root=trainPathFull, train=True, download=True, transform=trainTransform)
 testSet = torchvision.datasets.CIFAR10(root=testPath, train=False, download=True, transform=testTransform)
 testSet, validationSet = torch.utils.data.random_split(testSet, [int(len(testSet)/2), int(len(testSet)/2)])
 
@@ -134,19 +133,22 @@ def getInitialAcc():
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_resnet20", pretrained=True)
     # model.to(device)
 
-    testAcc, testClassAcc = validate(model, validationLoader)
+    testAcc, testClassAcc = test(model, testLoader)
     return testAcc, testClassAcc
 
 def doImage(phrase, dire):
     makeImage(phrase, dire)
 
     trainSet = torchvision.datasets.ImageFolder(trainPath, transform = trainTransform)
-    concatenatedTrainSet = torch.utils.data.ConcatDataset([trainSet, trainSetFull])
-    trainLoader = torch.utils.data.DataLoader(concatenatedTrainSet, batch_size = batch_size, shuffle=True,
-                                              pin_memory=True, num_workers=8)
+    #concatenatedTrainSet = torch.utils.data.ConcatDataset([trainSet, trainSetFull])
+    trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = 1, shuffle=True)
 
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_resnet20", pretrained=True)
     # model.to(device)
+
+    numFeatures = model.fc.in_features
+
+    model.fc = torch.nn.Linear(numFeatures, numClasses)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs)
@@ -154,9 +156,9 @@ def doImage(phrase, dire):
 
     train(model, optimizer, loss, sched, trainLoader)
 
-    testAcc, testClassAcc = validate(model, validationLoader)
+    testAcc, testClassAcc = test(model, testLoader)
     return testAcc, testClassAcc
 
 if __name__ == "__main__":
-    print(getInitialAcc())
+    print(doImage(1, 2))
     print('done')

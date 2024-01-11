@@ -164,3 +164,5 @@ images/
 test_images/
 test_images_saved/
 train_images
+
+tiny_image_net
