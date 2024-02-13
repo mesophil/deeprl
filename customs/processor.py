@@ -7,6 +7,8 @@ import torch
 import torchvision
 from torchvision import transforms
 
+import matplotlib.pyplot as plt
+
 from tqdm import tqdm
 
 from make_image import makeImage
@@ -41,10 +43,10 @@ trainPathFull = os.path.join(currentDir, "../train_images")
 trainSetFull = torchvision.datasets.CIFAR10(root=trainPathFull, train=True, download=True, transform=trainTransform)
 
 testSet = torchvision.datasets.CIFAR10(root=testPath, train=False, download=True, transform=testTransform)
-testSet, validationSet = torch.utils.data.random_split(testSet, [int(len(testSet)/2), int(len(testSet)/2)])
+#testSet, validationSet = torch.utils.data.random_split(testSet, [int(len(testSet)/2), int(len(testSet)/2)])
 
 testLoader = torch.utils.data.DataLoader(testSet, batch_size=test_batch_size, shuffle=False)
-validationLoader = torch.utils.data.DataLoader(validationSet, batch_size=test_batch_size, shuffle=False)
+#validationLoader = torch.utils.data.DataLoader(validationSet, batch_size=test_batch_size, shuffle=False)
 
 def train(model, optimizer, lossFunction, sched, trainLoader, numEpochs = numEpochs):
     model.train()
@@ -83,6 +85,10 @@ def test(model, testLoader):
         for inputs, labels in tqdm(testLoader):
             # inputs = inputs.cuda()
             # labels = labels.cuda()
+
+            plt.imshow(inputs.cpu()[0].permute(1, 2, 0))
+            plt.savefig("img")
+            print(f"Label: {labels.cpu()[0]}")
 
             scores = model(inputs)
             _, preds = torch.max(scores.data, 1)
@@ -134,7 +140,7 @@ def getInitialAcc():
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_resnet20", pretrained=True)
     # model.to(device)
 
-    testAcc, testClassAcc = validate(model, validationLoader)
+    testAcc, testClassAcc = test(model, testLoader)
     return testAcc, testClassAcc
 
 def doImage(phrase, dire):
@@ -154,7 +160,7 @@ def doImage(phrase, dire):
 
     train(model, optimizer, loss, sched, trainLoader)
 
-    testAcc, testClassAcc = validate(model, validationLoader)
+    testAcc, testClassAcc = test(model, testLoader)
     return testAcc, testClassAcc
 
 if __name__ == "__main__":

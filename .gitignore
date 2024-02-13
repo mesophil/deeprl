@@ -166,3 +166,5 @@ test_images_saved/
 train_images
 
 tiny_image_net
+model_logs
+models

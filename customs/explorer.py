@@ -3,9 +3,11 @@ import numpy as np
 from gymnasium import spaces
 import glob
 import random
+import math
 
 import logging, os
-from processor import doImage, getInitialAcc, test
+#from processor import doImage, getInitialAcc, test
+from tin_processor import doImage, getInitialAcc
 from make_image import makeImage
 
 from stable_baselines3.common.env_checker import check_env
@@ -14,19 +16,20 @@ from stable_baselines3 import PPO, A2C, DQN
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import CheckpointCallback
 
-from config import rl_lr, rl_batch, rl_epochs, rl_steps, rl_timesteps
+from config import rl_lr, rl_batch, rl_epochs, rl_steps, rl_timesteps, max_length, numClasses
+
+from tin_info import ids, id_to_english
 
 
 class trainEnv(gym.Env):
 
     def __init__(self, 
-                 classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'], 
-                 maxLength = 25) -> None:
+                 numClasses, 
+                 maxLength) -> None:
         
         super(trainEnv).__init__()
 
-        # CIFAR 10
-        self.classes = classes
+        self.numClasses = numClasses
 
         # CIFAR 100
         # self.classes = ['apple', 'aquarium_fish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle', 'bottle',
@@ -42,10 +45,10 @@ class trainEnv(gym.Env):
 
         self.currLength = 0
 
-        self.maxLength = max(maxLength, len(self.classes))
+        self.maxLength = max(maxLength, self.numClasses)
 
         # changed to have only half the class in each box for speed (just for testing)
-        self.action_space = spaces.MultiDiscrete([len(self.classes), len(self.classes)])
+        self.action_space = spaces.MultiDiscrete([self.numClasses, self.numClasses])
 
 
         # clear the images folder
@@ -68,9 +71,13 @@ class trainEnv(gym.Env):
         self.initialAcc, self.initialClassAccuracies = getInitialAcc()
         self.currentAcc, self.classAccuracies = self.initialAcc, self.initialClassAccuracies
 
-        logging.info(f"Initial accuracies: {self.initialAcc}, Class: {self.initialClassAccuracies}")
+        self.currEntropy = self.entropy(self.initialClassAccuracies)
 
-        self.observation_space = spaces.Box(low = 0, high = 1, shape=(12,), dtype=np.float32)
+        self.obsSize = 2 + self.numClasses
+
+        logging.info(f"Initial accuracies: {self.initialAcc}, Entropy: {self.currEntropy}, Class: {self.initialClassAccuracies}")
+
+        self.observation_space = spaces.Box(low = 0, high = 1, shape=(self.obsSize,), dtype=np.float32)
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed, options=options)
@@ -99,6 +106,8 @@ class trainEnv(gym.Env):
         obs = [self.currentAcc, self.currLength]
         obs.extend(self.classAccuracies)
 
+        self.currEntropy = self.entropy(self.initialClassAccuracies)
+
         return np.array(obs).astype(np.float32), {} #empty dict is for info
     
     def step(self, action):
@@ -106,7 +115,9 @@ class trainEnv(gym.Env):
         terminated, truncated = False, False
         info = {}
 
-        c = [self.classes[action[0]], self.classes[action[1]]]
+        c = [id_to_english[ids[action[0]]], id_to_english[ids[action[1]]]]
+
+        # c = [classList[action[0]], classList[action[1]]] for cifar-10
 
         # [in snow, in rain, corrupted, blurry, fog]
         domains = ['photo', 'drawing', 'painting', 'digital art image']
@@ -115,13 +126,11 @@ class trainEnv(gym.Env):
                            domains[np.random.randint(0, 3)],
                            "of a",
                            c[0],
-                           "(animal)" if c[0] == 'bird' or c[0] == 'cat' or c[0] == 'deer' or c[0] == 'dog' or c[0] == 'frog' or c[0] == 'horse' else "",
                            "and",
-                           c[1],
-                           "(animal)" if c[1] == 'bird' or c[1] == 'cat' or c[1] == 'deer' or c[1] == 'dog' or c[1] == 'frog' or c[1] == 'horse' else "",
+                           c[1]
                            ])
         
-        dire = c[0]
+        dire = str(action[0])
 
         # for ablation
         # phrase = c[0]
@@ -137,20 +146,24 @@ class trainEnv(gym.Env):
 
         # add a reward equal to the accuracy improvement on the test/validation set
         # options: entropy, accuracy
-        reward = (newAcc - self.currentAcc)
+        #reward = (newAcc - self.currentAcc)*100
+        entpy = self.entropy(newClassAcc)
+        reward = self.currEntropy - entpy
         self.currLength += 1
+
+        self.currEntropy = entpy
 
         # terminate when the max number of images is reached
         # add early stoppage when validation accuracy stagnates
         terminated = self.currLength >= self.maxLength
-        truncated = self.currentAcc < self.initialAcc
+        truncated = self.currentAcc < self.initialAcc - 0.005
 
         self.currentAcc = newAcc
 
         obs = [self.currentAcc, self.currLength]
         obs.extend(newClassAcc)
 
-        logging.info(f'Length: {self.currLength}, Acc: {newAcc}, Class Acc: {newClassAcc}')
+        logging.info(f'Length: {self.currLength}, Acc: {newAcc}, Ent: {entpy}, Class Acc: {newClassAcc}')
         
         return (
             np.array(obs).astype(np.float32),
@@ -167,6 +180,30 @@ class trainEnv(gym.Env):
         #         makeImage(" ".join([c, '(animal)']), c)
         #     else:
         #         makeImage(c, c)
+    
+    def entropy(self, labels, base=None):
+        """ Computes entropy of label distribution. """
+
+        n_labels = len(labels)
+
+        if n_labels <= 1:
+            return 0
+
+        value,counts = np.unique(labels, return_counts=True)
+        probs = counts / n_labels
+        n_classes = np.count_nonzero(probs)
+
+        if n_classes <= 1:
+            return 0
+
+        ent = 0.
+
+        # Compute entropy
+        base = math.e if base is None else base
+        for i in probs:
+            ent -= i * math.log(i, base)
+
+        return ent
 
 
 def main():
@@ -175,13 +212,13 @@ def main():
     testEnv()
 
 def testEnv():
-    env = trainEnv()
+    env = trainEnv(numClasses=numClasses, maxLength=max_length)
 
-    vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(maxLength=25))
+    vec_env = make_vec_env(trainEnv, n_envs=1, env_kwargs=dict(numClasses = numClasses, maxLength=max_length))
 
     checkpoint_callback = CheckpointCallback(save_freq=1000,
                                              save_path="./model_logs/",
-                                             name_prefix="rl_model",
+                                             name_prefix="rl_model_tin_nolim",
                                              save_replay_buffer=True,
                                              save_vecnormalize=True,
                                              )
