@@ -1,7 +1,3 @@
-# deeprl
-Vibing
+# Reinforcement Learning with Generative Models for Compact Support Sets
 
-## TODO
-- Class training losses - target classes with higher losses
-
-- Implement different architectures, e.g. ViT
+Paper available on arXiv at https://arxiv.org/abs/2404.16300
